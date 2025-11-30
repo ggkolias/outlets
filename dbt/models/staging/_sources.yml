@@ -1,0 +1,26 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Raw CSV data files
+    schema: raw
+    tables:
+      - name: org
+        description: Organization data
+      - name: platform
+        description: Platform data
+      - name: outlet
+        description: Outlet data with timestamps (needs deduplication)
+      - name: listing
+        description: Listing data with timestamps (needs deduplication)
+      - name: orders
+        description: Order transactions (may have duplicates)
+      - name: orders_daily
+        description: Daily aggregated orders with timestamps (needs deduplication)
+      - name: ratings_agg
+        description: Aggregated ratings by date and listing
+      - name: rank
+        description: Ranking data with timestamps (needs deduplication)
+      - name: weather
+        description: Weather data from Open-Meteo API
+

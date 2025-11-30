@@ -1,0 +1,19 @@
+# dbt profiles.yml template
+# Copy this to ~/.dbt/profiles.yml and adjust if needed
+#
+# IMPORTANT: Replace POSTGRES_USERNAME below with your PostgreSQL username.
+# This is typically your system username (run 'whoami' in terminal to find it).
+# You can also check by running: psql -l (look at the "Owner" column)
+
+sl_dbt:
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      user: POSTGRES_USERNAME
+      password: ''
+      port: 5432
+      dbname: sl_db
+      schema: dbt
+  target: dev
+

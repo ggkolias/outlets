@@ -1,0 +1,199 @@
+version: 2
+
+models:
+  - name: stg_org
+    description: Staged organization data, deduplicated by org_id
+    columns:
+      - name: org_id
+        tests:
+          - not_null
+          - unique
+  - name: stg_platform
+    description: Staged platform data
+    columns:
+      - name: platform_id
+        tests:
+          - not_null
+          - unique
+  - name: stg_outlet
+    description: Staged outlet data, deduplicated by outlet_id (keeps earliest timestamp) and filtered for valid coordinates
+    columns:
+      - name: outlet_id
+        tests:
+          - not_null
+          - unique
+      - name: org_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_org')
+                field: org_id
+      - name: latitude
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: -90
+                max_value: 90
+                inclusive: true
+      - name: longitude
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: -180
+                max_value: 180
+                inclusive: true
+  - name: stg_listing
+    description: Staged listing data, deduplicated by listing_id (keeps latest timestamp)
+    columns:
+      - name: listing_id
+        tests:
+          - not_null
+          - unique
+      - name: outlet_id
+        tests:
+          - not_null
+      - name: platform_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_platform')
+                field: platform_id
+  - name: stg_orders
+    description: Staged order transactions, deduplicated by order_id
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+          - unique
+      - name: listing_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_listing')
+                field: listing_id
+      - name: placed_at
+        tests:
+          - not_null
+  - name: stg_orders_daily
+    description: Staged daily aggregated orders, deduplicated by date and listing_id (keeps latest timestamp)
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - order_date
+              - listing_id
+    columns:
+      - name: order_date
+        tests:
+          - not_null
+      - name: listing_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_listing')
+                field: listing_id
+      - name: orders_count
+        tests:
+          - not_null
+  - name: stg_ratings_agg
+    description: Staged aggregated ratings data, deduplicated by date and listing_id (keeps highest cnt_ratings)
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - rating_date
+              - listing_id
+    columns:
+      - name: rating_date
+        tests:
+          - not_null
+      - name: listing_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_listing')
+                field: listing_id
+      - name: rating_count
+        description: Number of ratings for this date
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                inclusive: true
+      - name: avg_rating
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 5
+                inclusive: true
+  - name: stg_rank
+    description: Staged rank data, averaged per day (average of available data points per day)
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - rank_date
+              - listing_id
+    columns:
+      - name: listing_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_listing')
+                field: listing_id
+      - name: rank_date
+        tests:
+          - not_null
+      - name: avg_rank
+        description: Average rank for the day
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                inclusive: true
+      - name: last_updated
+        description: Timestamp of the last rank update for this day
+  - name: stg_weather
+    description: Staged weather data from Open-Meteo API
+    columns:
+      - name: outlet_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_outlet')
+                field: outlet_id
+      - name: weather_time
+        tests:
+          - not_null
+      - name: wind_speed_10m
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 200
+                inclusive: true
+      - name: temperature_2m
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: -50
+                max_value: 60
+                inclusive: true
+      - name: relative_humidity_2m
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
+                inclusive: true

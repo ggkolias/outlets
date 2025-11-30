@@ -1,0 +1,130 @@
+version: 2
+
+models:
+  - name: daily_reporting_table
+    description: >
+      Daily reporting table combining all data sources for business performance analysis.
+      Contains information on listing, outlet, org, platform, date, orders, aggregated_orders,
+      ratings (both cumulative and delta), and rank (average).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - report_date
+              - listing_id
+    columns:
+      - name: report_date
+        description: Date of the report (daily granularity)
+        tests:
+          - not_null
+      - name: listing_id
+        description: Unique identifier for the listing
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_listing')
+                field: listing_id
+      - name: outlet_id
+        description: Unique identifier for the outlet
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_outlet')
+                field: outlet_id
+      - name: outlet_name
+        description: Name of the outlet
+      - name: latitude
+        description: Latitude coordinate of the outlet
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: -90
+                max_value: 90
+                inclusive: true
+      - name: longitude
+        description: Longitude coordinate of the outlet
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: -180
+                max_value: 180
+                inclusive: true
+      - name: platform_id
+        description: Unique identifier for the platform
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_platform')
+                field: platform_id
+      - name: platform_name
+        description: Name of the platform
+      - name: platform_group
+        description: Group/category of the platform (e.g., Delivery, Aggregator)
+      - name: org_id
+        description: Unique identifier for the organization
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_org')
+                field: org_id
+      - name: org_name
+        description: Name of the organization
+      - name: orders
+        description: Number of orders for the day (from order transactions)
+        tests:
+          - not_null
+      - name: aggregated_orders
+        description: Aggregated order count for the day (from orders_daily)
+        tests:
+          - not_null
+      - name: rating_count
+        description: Number of ratings for the day
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                inclusive: true
+      - name: avg_rating
+        description: Average rating for the day (nullable if no ratings data)
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 5
+                inclusive: true
+      - name: cumulative_rating_count
+        description: Cumulative total of rating counts up to this date
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                inclusive: true
+      - name: cumulative_avg_rating
+        description: Cumulative average rating up to this date (nullable if no ratings data)
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 5
+                inclusive: true
+      - name: rating_count_delta
+        description: Change in rating count from previous day
+        tests:
+          - not_null
+      - name: avg_rating_delta
+        description: Change in average rating from previous day (nullable if no previous day data)
+      - name: avg_rank
+        description: Average rank for the day (average of available data points per day, nullable if no rank data)
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                inclusive: true
+      - name: rank_last_updated
+        description: Timestamp of the last rank update for this day
